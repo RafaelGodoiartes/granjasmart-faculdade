@@ -1,5 +1,5 @@
-const CACHE = 'granjasmart-academica-v1';
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './logo.svg', './manifest.webmanifest'];
+const CACHE = 'granjasmart-academica-v2';
+const ASSETS = ['./', './index.html', './styles.css', './features.js', './app.js', './brand-mark.png', './manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(ASSETS)));

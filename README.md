@@ -12,10 +12,14 @@ Aplicativo web estático para demonstração acadêmica de gestão avícola. Fun
 - alertas de vacinação, tarefas, estoque baixo e validade;
 - exportação CSV e backup/restauração JSON;
 - instalação como aplicativo web e uso offline após o primeiro carregamento.
+- fórmulas de ração cadastradas pelo usuário a partir de orientação profissional, com cálculo da mistura por peso, fases e preparo passo a passo;
+- guia inicial por sinais visíveis, sem diagnóstico ou prescrição automática;
+- agenda de manejo e vacinação, registro rápido de mortalidade e orientações recebidas de veterinário para consulta offline.
 
 ## Limites importantes
 
 Os registros ficam no `localStorage` do navegador, **não** em um servidor. Não há contas, sincronização, recuperação automática nem acesso aos mesmos dados em outro aparelho. Limpar os dados do navegador, trocar de aparelho ou desinstalar o navegador pode apagar os registros. Exporte um backup regularmente e guarde-o em local seguro. Não use esta edição como única cópia de dados de produção.
 
-Para testar: abra `index.html` por um servidor HTTP local ou publique os arquivos desta pasta no GitHub Pages. O projeto não usa dados fictícios pré-carregados.
+Não há backend para o veterinário publicar fórmulas ou receitas, mensagens automáticas entre usuários, sincronização entre aparelhos ou notificações quando o aplicativo está fechado. Esses recursos exigem infraestrutura adicional. As fichas de saúde são educativas e não substituem atendimento veterinário.
 
+Para testar: abra `index.html` por um servidor HTTP local ou publique os arquivos desta pasta no GitHub Pages. O projeto não usa dados fictícios pré-carregados.

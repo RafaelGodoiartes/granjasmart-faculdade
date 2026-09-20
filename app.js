@@ -1,6 +1,6 @@
 /* GranjaSmart Acadêmica — dados ficam somente no navegador deste aparelho. */
 const STORAGE_KEY = 'granjasmart-academica-v1';
-const COLLECTIONS = ['farms','houses','flocks','mortality','feed','weights','vaccines','expenses','revenues','sales','inventory','tasks'];
+const COLLECTIONS = ['farms','houses','flocks','mortality','feed','weights','vaccines','expenses','revenues','sales','inventory','tasks','formulas','vetNotes'];
 const fresh = () => Object.fromEntries(COLLECTIONS.map((key) => [key, []]));
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; };
 const id = () => globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -11,7 +11,7 @@ const dateBR = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateStri
 const days = (value) => value ? Math.max(0, Math.floor((new Date(`${today()}T12:00:00`) - new Date(`${value}T12:00:00`)) / 86400000)) : 0;
 const sum = (list, key) => list.reduce((total, item) => total + Number(item[key] || 0), 0);
 let db = load();
-let ui = { page: (location.hash || '#painel').slice(1), form: '', query: '', menu: false };
+let ui = { page: (location.hash || '#painel').slice(1), form: '', query: '', menu: false, prefillFlockId: '', formulaPhase: 'Todas', mixFormulaId: '', mixKg: 100, mixStep: 0, selectedSymptoms: [] };
 
 function load() {
   try {
@@ -56,20 +56,20 @@ function alerts() {
   return out;
 }
 const navigation = [
-  ['painel','◫','Painel'],['lotes','🐔','Lotes'],['alimentacao','🌽','Alimentação'],['sanidade','💉','Sanidade'],
-  ['financeiro','💰','Financeiro'],['estoque','📦','Estoque'],['relatorios','▥','Relatórios'],['configuracoes','⚙','Configurações']
+  ['painel','◫','Painel'],['lotes','🐔','Lotes'],['alimentacao','🌽','Alimentação'],['mistura','⚖️','Mistura de ração'],['sanidade','💉','Sanidade'],
+  ['saude','🩺','Guia de saúde'],['orientacoes','📋','Orientações'],['financeiro','💰','Financeiro'],['estoque','📦','Estoque'],['relatorios','▥','Relatórios'],['configuracoes','⚙','Configurações']
 ];
 function navHTML() { return navigation.map(([key,icon,label]) => `<button class="nav-link${ui.page===key?' active':''}" data-page="${key}"><span>${icon}</span><span>${label}</span>${key==='sanidade'&&alerts().length?`<b class="badge-number">${alerts().length}</b>`:''}</button>`).join(''); }
 function layout(content) {
   const pageTitle = navigation.find(([key]) => key === ui.page)?.[2] || 'Painel';
   const online = navigator.onLine;
   document.querySelector('#app').innerHTML = `<div class="app-shell"><div class="screen-overlay${ui.menu?' open':''}" data-action="close-menu"></div>
-    <aside class="sidebar${ui.menu?' open':''}"><div class="brand"><img src="./logo.svg" alt=""><div><strong>GranjaSmart</strong><small>edição acadêmica</small></div></div>
+    <aside class="sidebar${ui.menu?' open':''}"><div class="brand"><img src="./brand-mark.png" alt="Símbolo da GranjaSmart"><div><strong>GranjaSmart</strong></div></div>
     <div class="nav-group">OPERAÇÃO</div>${navHTML()}<div class="sidebar-foot">📱 Dados guardados neste navegador.<br>Faça backup regularmente.</div></aside>
     <div class="main"><header class="topbar"><div class="topbar-left"><button class="menu-toggle" data-action="menu" aria-label="Abrir menu">☰</button><span class="topbar-title">${esc(pageTitle)}</span></div>
       <div class="status-line"><span class="status-dot${online?'':' offline'}"></span><span class="muted">${online?'Online':'Offline'}</span><span class="topbar-badge">Sem login</span></div></header>
       <main class="content">${content}</main></div>
-    <nav class="mobile-nav" aria-label="Menu rápido">${[['painel','◫','Painel'],['lotes','🐔','Lotes'],['alimentacao','🌽','Ração'],['financeiro','💰','Finanças'],['configuracoes','⚙','Mais']].map(([key,icon,label])=>`<button data-page="${key}" class="${ui.page===key?'active':''}"><span>${icon}</span>${label}</button>`).join('')}</nav></div>`;
+    <nav class="mobile-nav" aria-label="Menu rápido">${[['painel','◫','Painel'],['lotes','🐔','Lotes'],['mistura','⚖️','Mistura'],['saude','🩺','Saúde'],['configuracoes','⚙','Mais']].map(([key,icon,label])=>`<button data-page="${key}" class="${ui.page===key?'active':''}"><span>${icon}</span>${label}</button>`).join('')}</nav></div>`;
 }
 function head(eyebrow,title,subtitle,actions='') { return `<div class="page-head"><div><div class="eyebrow">${esc(eyebrow)}</div><h1>${esc(title)}</h1><p class="muted">${esc(subtitle)}</p></div><div class="head-actions">${actions}</div></div>`; }
 function button(label,key,secondary=false) { return `<button class="button${secondary?' secondary':''}" data-new="${key}">${label}</button>`; }
@@ -115,8 +115,8 @@ function fieldHTML(field) {
   if (type === 'textarea') control = `<textarea ${base} placeholder="Opcional"></textarea>`;
   else if (type === 'select' || type === 'flocks' || type === 'houses') {
     const items = type === 'select' ? options.map((v)=>({id:v,name:v})) : type === 'flocks' ? scoped('flocks').map((v)=>({id:v.id,name:v.name})) : scoped('houses').map((v)=>({id:v.id,name:v.name}));
-    control = `<select ${base}><option value="">${required?'Selecione':'Nenhum'}</option>${items.map((item)=>`<option value="${esc(item.id)}">${esc(item.name)}</option>`).join('')}</select>`;
-  } else control = `<input ${base} type="${type}" ${type==='number'?`min="${min??0}" step="${Number.isInteger(min)&&min>=1?'1':'0.001'}"`:''} ${type==='date'?`value="${today()}"`:''} ${name==='status'?`value="ativo"`:''}>`;
+    control = `<select ${base}><option value="">${required?'Selecione':'Nenhum'}</option>${items.map((item)=>`<option value="${esc(item.id)}"${name==='flockId'&&item.id===ui.prefillFlockId?' selected':''}>${esc(item.name)}</option>`).join('')}</select>`;
+  } else control = `<input ${base} type="${type}" ${type==='number'?`min="${min??0}" step="${Number.isInteger(min)&&min>=1?'1':'0.001'}"`:''} ${type==='date'?`value="${today()}"`:''} ${name==='count'&&ui.form==='mortality'?`value="1"`:''}>`;
   return `<div class="field${type==='textarea'?' wide':''}"><label for="f-${name}">${esc(label)}${required?' *':''}</label>${control}</div>`;
 }
 function formHTML(key) {
@@ -127,7 +127,7 @@ function collectionPage() {
   if (ui.page === 'lotes') {
     const flocks = scoped('flocks'), houses = scoped('houses');
     return head('CRIAÇÃO','Plantel e instalações','Registre lotes, galpões, mortalidade e pesagens.',button('＋ Novo lote','flock')+button('＋ Galpão','house',true)) + farmWarning() + formHTML(ui.form)
-      + `<div class="grid two-col">${card('Lotes',table(['Lote','Finalidade','Idade','Aves atuais','Situação',''],flocks.map((item)=>`<tr><td><strong>${esc(item.name)}</strong><br><small>${esc(item.breed||'Raça não informada')}</small></td><td>${esc(item.purpose)}</td><td>${days(item.date)} dias</td><td>${qty(currentBirds(item))} / ${qty(item.initial)}</td><td><span class="chip${item.status==='ativo'?'':' gray'}">${esc(item.status)}</span></td><td class="actions">${del('flocks',item)}</td></tr>`),'Cadastre seu primeiro lote.'))}${card('Galpões',table(['Galpão','Ocupação',''],houses.map((item)=>{const birds=flocks.filter((f)=>f.houseId===item.id).reduce((s,f)=>s+currentBirds(f),0);return `<tr><td><strong>${esc(item.name)}</strong></td><td>${qty(birds)} / ${qty(item.capacity)} aves</td><td>${del('houses',item)}</td></tr>`}),'Cadastre galpões para organizar os lotes.'))}</div>`
+      + `<div class="grid two-col">${card('Lotes',table(['Lote','Finalidade','Idade','Aves atuais','Mortalidade hoje','Situação',''],flocks.map((item)=>`<tr><td><strong>${esc(item.name)}</strong><br><small>${esc(item.breed||'Raça não informada')}</small></td><td>${esc(item.purpose)}</td><td>${days(item.date)} dias</td><td>${qty(currentBirds(item))} / ${qty(item.initial)}</td><td>${qty(sum(db.mortality.filter((r)=>r.flockId===item.id&&r.date===today()),'count'))} <button class="button small secondary" data-quick-mortality="${esc(item.id)}">＋</button></td><td><span class="chip${item.status==='ativo'?'':' gray'}">${esc(item.status)}</span></td><td class="actions">${del('flocks',item)}</td></tr>`),'Cadastre seu primeiro lote.'))}${card('Galpões',table(['Galpão','Ocupação',''],houses.map((item)=>{const birds=flocks.filter((f)=>f.houseId===item.id).reduce((s,f)=>s+currentBirds(f),0);return `<tr><td><strong>${esc(item.name)}</strong></td><td>${qty(birds)} / ${qty(item.capacity)} aves</td><td>${del('houses',item)}</td></tr>`}),'Cadastre galpões para organizar os lotes.'))}</div>`
       + `<div class="grid two-col" style="margin-top:1rem">${card('Mortalidade',`<div class="section-header">${button('＋ Registrar','mortality',true)}</div>${table(['Data','Lote','Aves',''],scoped('mortality').slice().reverse().map((item)=>`<tr><td>${dateBR(item.date)}</td><td>${esc(flockName(item.flockId))}</td><td>${qty(item.count)}</td><td>${del('mortality',item)}</td></tr>`),'Sem registros de mortalidade.')}`)}${card('Pesagens',`<div class="section-header">${button('＋ Nova pesagem','weight',true)}</div>${table(['Data','Lote','Peso médio',''],scoped('weights').slice().reverse().map((item)=>`<tr><td>${dateBR(item.date)}</td><td>${esc(flockName(item.flockId))}</td><td>${qty(item.kg,3)} kg</td><td>${del('weights',item)}</td></tr>`),'Sem pesagens.')}`)}</div>`;
   }
   if (ui.page === 'alimentacao') {
@@ -139,7 +139,7 @@ function collectionPage() {
   if (ui.page === 'sanidade') {
     const items=scoped('vaccines'), tasks=scoped('tasks');
     return head('SANIDADE E MANEJO','Vacinas e atividades','Organize o calendário de cuidados da granja.',button('＋ Vacinação','vaccine')+button('＋ Tarefa','task',true))+farmWarning()+formHTML(ui.form)
-      + `<div class="grid two-col">${card('Calendário de vacinação',table(['Data','Vacina','Lote','Status',''],items.slice().sort((a,b)=>a.date.localeCompare(b.date)).map((item)=>`<tr><td>${dateBR(item.date)}</td><td><strong>${esc(item.name)}</strong></td><td>${esc(flockName(item.flockId))}</td><td><button class="button small ${item.done?'secondary':'ghost'}" data-toggle="vaccines" data-id="${esc(item.id)}">${item.done?'Aplicada':'Marcar aplicada'}</button></td><td>${del('vaccines',item)}</td></tr>`),'Programe a primeira vacinação.'))}${card('Tarefas de manejo',table(['Data','Atividade','Status',''],tasks.slice().sort((a,b)=>a.date.localeCompare(b.date)).map((item)=>`<tr><td>${dateBR(item.date)}</td><td><strong>${esc(item.title)}</strong><br><small>${esc(item.note||'')}</small></td><td><button class="button small ${item.done?'secondary':'ghost'}" data-toggle="tasks" data-id="${esc(item.id)}">${item.done?'Feita':'Concluir'}</button></td><td>${del('tasks',item)}</td></tr>`),'Crie a primeira atividade.'))}</div>`;
+    + `<div class="grid two-col">${card('Calendário de vacinação',table(['Data','Vacina','Lote','Status',''],items.slice().sort((a,b)=>a.date.localeCompare(b.date)).map((item)=>`<tr><td>${dateBR(item.date)}</td><td><strong>${esc(item.name)}</strong></td><td>${esc(flockName(item.flockId))}</td><td><button class="button small ${item.done?'secondary':'ghost'}" data-toggle="vaccines" data-id="${esc(item.id)}">${item.done?'Aplicada':'Marcar aplicada'}</button></td><td>${del('vaccines',item)}</td></tr>`),'Programe a primeira vacinação.'))}${card('Tarefas de manejo',table(['Data','Atividade','Status',''],tasks.slice().sort((a,b)=>a.date.localeCompare(b.date)).map((item)=>`<tr><td>${dateBR(item.date)}</td><td><strong>${esc(item.title)}</strong><br><small>${esc(item.note||'')}</small></td><td><button class="button small ${item.done?'secondary':'ghost'}" data-toggle="tasks" data-id="${esc(item.id)}">${item.done?'Feita':'Concluir'}</button></td><td>${del('tasks',item)}</td></tr>`),'Crie a primeira atividade.'))}</div>${calendarHTML()}`;
   }
   if (ui.page === 'financeiro') {
     const t=totals();
@@ -172,12 +172,15 @@ function render() {
   if (ui.page==='painel') dashboard();
   else if (ui.page==='relatorios') layout(reports());
   else if (ui.page==='configuracoes') layout(settings());
+  else if (ui.page==='mistura') layout(mixturePage());
+  else if (ui.page==='saude') layout(healthPage());
+  else if (ui.page==='orientacoes') layout(guidancePage());
   else layout(collectionPage());
 }
-function openForm(key) {
-  const page = {farm:'configuracoes',house:'lotes',flock:'lotes',mortality:'lotes',weight:'lotes',feed:'alimentacao',vaccine:'sanidade',task:'sanidade',expense:'financeiro',revenue:'financeiro',sale:'financeiro',inventory:'estoque'}[key];
+function openForm(key, prefillFlockId = '') {
+  const page = {farm:'configuracoes',house:'lotes',flock:'lotes',mortality:'lotes',weight:'lotes',feed:'alimentacao',vaccine:'sanidade',task:'sanidade',expense:'financeiro',revenue:'financeiro',sale:'financeiro',inventory:'estoque',formula:'mistura',vetNote:'orientacoes'}[key];
   if (key!=='farm'&&!farm()) { ui.page='configuracoes'; ui.form='farm'; location.hash='configuracoes'; render(); toast('Cadastre uma propriedade primeiro.'); return; }
-  ui.page=page; ui.form=key; location.hash=page; render(); document.querySelector('.form-card')?.scrollIntoView({behavior:'smooth',block:'start'});
+  ui.page=page; ui.form=key; ui.prefillFlockId=prefillFlockId; location.hash=page; render(); document.querySelector('.form-card')?.scrollIntoView({behavior:'smooth',block:'start'});
 }
 function submitRecord(key, form) {
   const schema=schemas[key], values=Object.fromEntries(new FormData(form).entries());
@@ -204,14 +207,14 @@ function submitRecord(key, form) {
   db[schema.collection].push(record);
   if (key==='farm'&&!db.selectedFarm) db.selectedFarm=record.id;
   if (!save()) { db[schema.collection].pop(); return; }
-  ui.form=''; render(); toast('Registro salvo neste aparelho.');
+  ui.form=''; ui.prefillFlockId=''; render(); toast('Registro salvo neste aparelho.');
 }
 function removeRecord(collection,itemId) {
   if (!COLLECTIONS.includes(collection)) return;
   const item=db[collection].find((r)=>r.id===itemId); if (!item) return;
   if (collection==='farms' && COLLECTIONS.some((key)=>key!=='farms'&&db[key].some((r)=>r.farmId===itemId))) return toast('Exclua os registros desta propriedade antes de removê-la.',true);
   if (collection==='houses'&&db.flocks.some((r)=>r.houseId===itemId)) return toast('Há lotes vinculados a este galpão.',true);
-  if (collection==='flocks'&&['mortality','feed','weights','vaccines','expenses','revenues','sales','tasks'].some((key)=>db[key].some((r)=>r.flockId===itemId))) return toast('Há registros vinculados a este lote.',true);
+  if (collection==='flocks'&&['mortality','feed','weights','vaccines','expenses','revenues','sales','tasks','vetNotes'].some((key)=>db[key].some((r)=>r.flockId===itemId))) return toast('Há registros vinculados a este lote.',true);
   if (!confirm('Excluir este registro? Essa ação não pode ser desfeita, exceto restaurando um backup.')) return;
   db[collection]=db[collection].filter((r)=>r.id!==itemId);
   if (collection==='farms'&&db.selectedFarm===itemId) db.selectedFarm=db.farms[0]?.id||'';
@@ -243,6 +246,7 @@ async function importBackup(file) {
 document.addEventListener('click',(event)=>{
   const pageButton=event.target.closest('[data-page]'); if (pageButton) { ui.page=pageButton.dataset.page;ui.form='';ui.menu=false;location.hash=ui.page;render();window.scrollTo(0,0);return; }
   const newButton=event.target.closest('[data-new]'); if (newButton) { openForm(newButton.dataset.new);return; }
+  const mortalityButton=event.target.closest('[data-quick-mortality]'); if (mortalityButton) { openForm('mortality',mortalityButton.dataset.quickMortality);return; }
   const deleteButton=event.target.closest('[data-delete]'); if (deleteButton) { removeRecord(deleteButton.dataset.delete,deleteButton.dataset.id);return; }
   const farmButton=event.target.closest('[data-select-farm]'); if (farmButton) { db.selectedFarm=farmButton.dataset.selectFarm;save();render();toast('Propriedade selecionada.');return; }
   const toggle=event.target.closest('[data-toggle]'); if (toggle) { const item=db[toggle.dataset.toggle]?.find((r)=>r.id===toggle.dataset.id);if(item){item.done=!item.done;save();render();toast('Atividade atualizada.')}return; }
