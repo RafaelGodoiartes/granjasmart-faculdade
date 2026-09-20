@@ -14,7 +14,7 @@ Aplicativo web estático para demonstração acadêmica de gestão avícola. Fun
 - instalação como aplicativo web e uso offline após o primeiro carregamento.
 - fórmulas de ração cadastradas pelo usuário a partir de orientação profissional, com cálculo da mistura por peso, fases e preparo passo a passo;
 - guia inicial por sinais visíveis, sem diagnóstico ou prescrição automática;
-- agenda de manejo e vacinação, registro rápido de mortalidade e orientações recebidas de veterinário para consulta offline.
+- calendário mensal de manejo e vacinação, registro rápido de mortalidade e orientações recebidas de veterinário para consulta offline.
 
 ## Limites importantes
 

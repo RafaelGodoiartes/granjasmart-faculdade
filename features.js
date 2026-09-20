@@ -69,8 +69,18 @@ function guidancePage() {
 }
 function calendarHTML() {
   const events=[...scoped('vaccines').filter(x=>!x.done).map(x=>({date:x.date,title:`💉 ${x.name}`,detail:flockName(x.flockId)})),...scoped('tasks').filter(x=>!x.done).map(x=>({date:x.date,title:`📅 ${x.title}`,detail:x.flockId?flockName(x.flockId):'Manejo'}))].sort((a,b)=>a.date.localeCompare(b.date));
-  const entries=events.length?`<div class="timeline">${events.map(x=>`<div class="timeline-item"><strong>${dateBR(x.date)}</strong><span>${esc(x.title)}<small>${esc(x.detail)}</small></span><span class="chip ${x.date<today()?'red':x.date===today()?'amber':''}">${x.date<today()?'Atrasado':x.date===today()?'Hoje':'Próximo'}</span></div>`).join('')}</div>`:empty('Sem atividades futuras ou pendentes.');
-  return `<div style="height:1rem"></div>${card('Agenda e lembretes',entries+'<p class="muted">Alertas aparecem no painel quando você abre o app. Notificações com o aplicativo fechado exigem um serviço de envio ainda não disponível nesta edição.</p>')}`;
+  const [year,month]=ui.calendarMonth.split('-').map(Number);
+  const first=new Date(year,month-1,1), monthDays=new Date(year,month,0).getDate(), offset=(first.getDay()+6)%7;
+  const rawLabel=first.toLocaleDateString('pt-BR',{month:'long',year:'numeric'}), label=rawLabel.charAt(0).toLocaleUpperCase('pt-BR')+rawLabel.slice(1);
+  const dayCells=Array.from({length:offset},()=>'<span class="calendar-blank"></span>');
+  for(let day=1;day<=monthDays;day++){
+    const date=`${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+    const count=events.filter(x=>x.date===date).length;
+    dayCells.push(`<button type="button" class="calendar-day${date===today()?' today':''}${date===ui.calendarDay?' selected':''}" data-calendar-day="${date}" aria-label="${day} de ${label}${count?`, ${count} atividade${count>1?'s':''}`:''}" aria-pressed="${date===ui.calendarDay}"><span>${day}</span>${count?`<i>${count}</i>`:''}</button>`);
+  }
+  const selected=events.filter(x=>x.date===ui.calendarDay);
+  const entries=selected.length?selected.map(x=>`<div class="timeline-item"><span>${esc(x.title)}<small>${esc(x.detail)}</small></span><span class="chip ${x.date<today()?'red':x.date===today()?'amber':''}">${x.date<today()?'Atrasado':x.date===today()?'Hoje':'Pendente'}</span></div>`).join(''):empty('Nenhuma atividade pendente neste dia.');
+  return `<div style="height:1rem"></div>${card('Agenda e lembretes',`<div class="calendar-toolbar"><button class="button small secondary" data-calendar-move="-1" aria-label="Mês anterior">←</button><strong>${esc(label)}</strong><button class="button small secondary" data-calendar-move="1" aria-label="Próximo mês">→</button></div><div class="calendar-grid" aria-label="Calendário de manejo e vacinação">${['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'].map(x=>`<span class="calendar-weekday">${x}</span>`).join('')}${dayCells.join('')}</div><h3 class="calendar-selection">${dateBR(ui.calendarDay)}</h3><div class="timeline">${entries}</div><p class="muted calendar-help">Números nos dias mostram tarefas e vacinações pendentes. Alertas aparecem quando você abre o app; notificações com o aplicativo fechado ainda não estão disponíveis.</p>`)}`;
 }
 function saveFeatureRecord(kind,form) {
   const data=new FormData(form);
@@ -100,6 +110,8 @@ document.addEventListener('click',event=>{
   const chosen=event.target.closest('[data-choose-formula]');if(chosen){ui.mixFormulaId=chosen.dataset.chooseFormula;ui.mixStep=0;render();return;}
   const step=event.target.closest('[data-step]');if(step){ui.mixStep+=Number(step.dataset.step);render();return;}
   const symptom=event.target.closest('[data-symptom]');if(symptom){const id=symptom.dataset.symptom;ui.selectedSymptoms=ui.selectedSymptoms.includes(id)?ui.selectedSymptoms.filter(x=>x!==id):[...ui.selectedSymptoms,id];render();return;}
+  const month=event.target.closest('[data-calendar-move]');if(month){const [year,number]=ui.calendarMonth.split('-').map(Number);const moved=new Date(year,number-1+Number(month.dataset.calendarMove),1);ui.calendarMonth=`${moved.getFullYear()}-${String(moved.getMonth()+1).padStart(2,'0')}`;ui.calendarDay=`${ui.calendarMonth}-01`;render();return;}
+  const day=event.target.closest('[data-calendar-day]');if(day){ui.calendarDay=day.dataset.calendarDay;render();return;}
 });
 document.addEventListener('change',event=>{if(event.target.id==='mix-kg'){const value=Number(event.target.value);if(!Number.isFinite(value)||value<=0||value>100000)return toast('Informe uma quantidade entre 0 e 100.000 kg.',true);ui.mixKg=value;ui.mixStep=0;render();}});
 document.addEventListener('input',event=>{if(event.target.id!=='mix-kg')return;const value=Number(event.target.value);if(!Number.isFinite(value)||value<=0||value>100000)return;ui.mixKg=value;ui.mixStep=0;document.querySelectorAll('[data-mix-percent]').forEach(node=>{node.textContent=`${qty(value*Number(node.dataset.mixPercent)/100,3)} kg`;});const total=document.querySelector('#mix-total');if(total)total.textContent=`${qty(value,3)} kg`;});

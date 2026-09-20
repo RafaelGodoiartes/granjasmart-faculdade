@@ -1,4 +1,4 @@
-const CACHE = 'granjasmart-academica-v2';
+const CACHE = 'granjasmart-academica-v3';
 const ASSETS = ['./', './index.html', './styles.css', './features.js', './app.js', './brand-mark.png', './manifest.webmanifest'];
 
 self.addEventListener('install', (event) => {

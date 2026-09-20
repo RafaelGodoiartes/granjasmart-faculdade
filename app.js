@@ -11,7 +11,7 @@ const dateBR = (value) => value ? new Date(`${value}T12:00:00`).toLocaleDateStri
 const days = (value) => value ? Math.max(0, Math.floor((new Date(`${today()}T12:00:00`) - new Date(`${value}T12:00:00`)) / 86400000)) : 0;
 const sum = (list, key) => list.reduce((total, item) => total + Number(item[key] || 0), 0);
 let db = load();
-let ui = { page: (location.hash || '#painel').slice(1), form: '', query: '', menu: false, prefillFlockId: '', formulaPhase: 'Todas', mixFormulaId: '', mixKg: 100, mixStep: 0, selectedSymptoms: [] };
+let ui = { page: (location.hash || '#painel').slice(1), form: '', query: '', menu: false, prefillFlockId: '', formulaPhase: 'Todas', mixFormulaId: '', mixKg: 100, mixStep: 0, selectedSymptoms: [], calendarMonth: today().slice(0,7), calendarDay: today() };
 
 function load() {
   try {
