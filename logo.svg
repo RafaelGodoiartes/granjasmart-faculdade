@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-label="GranjaSmart">
+  <rect width="96" height="96" rx="23" fill="#10271d"/>
+  <path d="M23 73C25 45 42 24 70 14 66 31 56 49 44 64c-7 9-14 13-21 9Z" fill="#e9ae39"/>
+  <path d="M25 72c-2-23 10-42 31-48-2 14-9 26-21 38Z" fill="#51806a"/>
+  <path d="M40 37c8-10 21-10 29-2l5 7-9 1c5 6 4 15-1 21-7 9-20 10-29 3 7-7 12-18 13-25l-8-5Z" fill="#fff"/>
+  <circle cx="62" cy="39" r="2" fill="#10271d"/>
+  <path d="m72 45 9 3-9 4Z" fill="#e9ae39"/>
+</svg>

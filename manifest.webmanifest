@@ -1,0 +1,11 @@
+{
+  "name": "GranjaSmart Acadêmica",
+  "short_name": "GranjaSmart",
+  "description": "Gestão avícola local e offline para demonstração acadêmica.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f8f5",
+  "theme_color": "#10271d",
+  "icons": [{ "src": "./logo.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }]
+}
